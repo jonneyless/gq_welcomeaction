@@ -1,0 +1,16 @@
+#图片鉴黄部署文档：
+pip37 install predict
+pip37 install protobuf==3.20.2
+pip37 install nsfw-detector==1.1.1
+pip37 install install tensorflow==2.11.0
+nsfw-detector   版本号： 1.1.1
+tensorflow      版本号： 2.11.0
+predict         版本号： 3.1.17
+
+#定时删除图片文件
+#每天指定时间执行一次删除当天外所以图片信息
+
+#任务内容：
+
+#!/bin/bash
+python37  /www/wwwroot/huione_py/image_file.py

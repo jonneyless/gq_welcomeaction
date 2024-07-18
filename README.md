@@ -1,4 +1,4 @@
-# gq_welcomeAction
+# gongqun-welcomeAction-python
 
 
 
@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin http://10.10.10.10/root/gq_welcomeaction.git
+git remote add origin http://10.10.10.10:10008/root/gongqun-welcomeaction-python.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](http://10.10.10.10/root/gq_welcomeaction/-/settings/integrations)
+- [ ] [Set up project integrations](http://10.10.10.10:10008/root/gongqun-welcomeaction-python/-/settings/integrations)
 
 ## Collaborate with your team
 
