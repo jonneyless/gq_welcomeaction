@@ -1,14 +1,15 @@
+import assist
 import db_redis
 from assist import get_current_time, htmlspecialchars_php, is_number, get_today_time, get_day_int
 from dbpool import OPMysql
-import assist
+
 
 # ======================================================================================================================
 
 async def group_one_by_num(num):
     opm = OPMysql()
 
-    sql = "select id, chat_id, bot_approve_link from groups where group_num = %s and (flag = 2 or flag = 4) and status_in = 1 limit 1" % num
+    sql = "select id, chat_id, bot_approve_link from `groups` where group_num = %s and (flag = 2 or flag = 4) and status_in = 1 limit 1" % num
 
     result = opm.op_select_one(sql)
 
@@ -20,7 +21,7 @@ async def group_one_by_num(num):
 async def group_one(group_tg_id):
     opm = OPMysql()
 
-    sql = "select * from groups where chat_id = '%s' limit 1" % group_tg_id
+    sql = "select * from `groups` where chat_id = '%s' limit 1" % group_tg_id
 
     result = opm.op_select_one(sql)
 
@@ -32,7 +33,7 @@ async def group_one(group_tg_id):
 async def group_flush(group_tg_id):
     opm = OPMysql()
 
-    sql = "select id, chat_id as tg_id, title, flag, trade_type, title, welcome_info, welcome_status, people_limit, limit_one_time, welcome_true_status, welcome_false_status, business_detail_type, business_type, open_status, group_num from groups where chat_id = '%s' limit 1" % group_tg_id
+    sql = "select id, chat_id as tg_id, title, flag, trade_type, title, welcome_info, welcome_status, people_limit, limit_one_time, welcome_true_status, welcome_false_status, business_detail_type, business_type, open_status, group_num from `groups` where chat_id = '%s' limit 1" % group_tg_id
 
     result = opm.op_select_one(sql)
 
@@ -47,7 +48,7 @@ async def group_flush(group_tg_id):
 async def groups_get():
     opm = OPMysql()
 
-    sql = "select id, chat_id as tg_id from groups where flag = 2 or flag = 4"
+    sql = "select id, chat_id as tg_id from `groups` where flag = 2 or flag = 4"
 
     result = opm.op_select_all(sql)
 
@@ -59,7 +60,7 @@ async def groups_get():
 async def group_one_by_url(url):
     opm = OPMysql()
 
-    sql = "select id, flag from groups where url = '%s' limit 1" % url
+    sql = "select id, flag from `groups` where url = '%s' limit 1" % url
 
     result = opm.op_select_one(sql)
 
@@ -71,7 +72,7 @@ async def group_one_by_url(url):
 async def group_save(group_tg_id, title):
     opm = OPMysql()
 
-    sql = "insert into groups(chat_id, title, flag, created_at, status_in) values('%s', '%s', '%s', '%s', '%s')" % (
+    sql = "insert into `groups`(chat_id, title, flag, created_at, status_in) values('%s', '%s', '%s', '%s', '%s')" % (
         group_tg_id, title, 2, get_current_time(), 1)
 
     result = opm.op_update(sql)
@@ -84,7 +85,7 @@ async def group_save(group_tg_id, title):
 async def group_set_flag(chat_id, flag=2):
     opm = OPMysql()
 
-    sql = "update groups set flag = '%s', status_in = 1 where chat_id = %s" % (flag, chat_id)
+    sql = "update `groups` set flag = '%s', status_in = 1 where chat_id = %s" % (flag, chat_id)
 
     result = opm.op_update(sql)
 
@@ -96,7 +97,7 @@ async def group_set_flag(chat_id, flag=2):
 async def group_set_bot_link(data_id, link):
     opm = OPMysql()
 
-    sql = "update groups set bot_approve_link = '%s' where id = %s" % (link, data_id)
+    sql = "update `groups` set bot_approve_link = '%s' where id = %s" % (link, data_id)
 
     result = opm.op_update(sql)
 
@@ -108,7 +109,7 @@ async def group_set_bot_link(data_id, link):
 async def group_set_open_status(data_id, open_status=1):
     opm = OPMysql()
 
-    sql = "update groups set open_status = '%s' where id = %s" % (open_status, data_id)
+    sql = "update `groups` set open_status = '%s' where id = %s" % (open_status, data_id)
 
     result = opm.op_update(sql)
 
@@ -120,7 +121,7 @@ async def group_set_open_status(data_id, open_status=1):
 async def group_set_title(id, title):
     opm = OPMysql()
 
-    sql = "update groups set title = '%s' where id = %s" % (title, id)
+    sql = "update `groups` set title = '%s' where id = %s" % (title, id)
 
     result = opm.op_update(sql)
 
@@ -132,7 +133,7 @@ async def group_set_title(id, title):
 async def group_set_welcome_info(id, welcome_info):
     opm = OPMysql()
 
-    sql = "update groups set welcome_info = '%s', welcome_status = 1 where id = %s" % (welcome_info, id)
+    sql = "update `groups` set welcome_info = '%s', welcome_status = 1 where id = %s" % (welcome_info, id)
 
     result = opm.op_update(sql)
 
@@ -144,7 +145,7 @@ async def group_set_welcome_info(id, welcome_info):
 async def group_close_welcome_info(id):
     opm = OPMysql()
 
-    sql = "update groups set welcome_status = 2 where id = %s" % id
+    sql = "update `groups` set welcome_status = 2 where id = %s" % id
 
     result = opm.op_update(sql)
 
@@ -156,7 +157,7 @@ async def group_close_welcome_info(id):
 async def group_init(data_id, title):
     opm = OPMysql()
 
-    sql = "update groups set title = '%s', yajin = 0, yajin_u = 0, yajin_m = 0, yajin_all = 0, yajin_all_u = 0, yajin_all_m = 0 where id = %s" % (title, data_id)
+    sql = "update `groups` set title = '%s', yajin = 0, yajin_u = 0, yajin_m = 0, yajin_all = 0, yajin_all_u = 0, yajin_all_m = 0 where id = %s" % (title, data_id)
 
     result = opm.op_update(sql)
 
@@ -1105,7 +1106,7 @@ async def groups_search_by_title(text, page, page_len = 20):
     
     opm = OPMysql()
 
-    sql = "select open_status, chat_id as tg_id, title, val as link, %s from groups join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s,%s" % (name_sort_sql, search_words_sql, offeset, page_len)
+    sql = "select open_status, chat_id as tg_id, title, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s,%s" % (name_sort_sql, search_words_sql, offeset, page_len)
     
     print(sql)
     
@@ -1121,7 +1122,7 @@ async def groups_search_count_by_title(text):
     
     opm = OPMysql()
 
-    sql = "select count(chat_id) as count_num from groups join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s " % search_words_sql
+    sql = "select count(chat_id) as count_num from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s " % search_words_sql
     
     result = opm.op_select_one(sql)
 
@@ -1139,7 +1140,7 @@ async def groups_search_by_rules(text, page, page_len = 20):
     
     opm = OPMysql()
 
-    sql = "select open_status, chat_id as tg_id, title, val as link, %s from groups join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s,%s" % (name_sort_sql, search_words_sql, offeset, page_len)
+    sql = "select open_status, chat_id as tg_id, title, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s,%s" % (name_sort_sql, search_words_sql, offeset, page_len)
 
     result = opm.op_select_all(sql)
 
@@ -1153,7 +1154,7 @@ async def groups_search_count_by_rules(text):
     
     opm = OPMysql()
 
-    sql = "select count(chat_id) as count_num from groups join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s" % search_words_sql
+    sql = "select count(chat_id) as count_num from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s" % search_words_sql
 
     result = opm.op_select_one(sql)
 
@@ -1169,7 +1170,7 @@ async def groups_search_by_rules_limit(text, page_len):
     
     opm = OPMysql()
 
-    sql = "select open_status, chat_id as tg_id, title, val as link, %s from groups join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s" % (name_sort_sql, search_words_sql, page_len)
+    sql = "select open_status, chat_id as tg_id, title, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s" % (name_sort_sql, search_words_sql, page_len)
     
     result = opm.op_select_all(sql)
 

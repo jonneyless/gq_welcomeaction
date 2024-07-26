@@ -1,9 +1,8 @@
 import telethon.tl.types
-import asyncio
+from telethon.tl.functions.users import GetFullUserRequest
 
 import tg
 from assist import *
-from config import ybjqr_bot_id
 from helpp import *
 
 
@@ -42,6 +41,8 @@ async def index(bot, event, group, group_tg_id, action_message):
 async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
     user_tg_id = int(user_id)
 
+    print('user enter:', user_tg_id)
+
     if user_tg_id == ybjqr_bot_id:
         is_official = await db.official_one(from_id)
         if is_official is None:
@@ -65,6 +66,8 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
     newer = None
     try:
         newer = await bot.get_entity(user_tg_id)
+
+        print(newer)
     except:
         return
     
@@ -74,9 +77,15 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
     if hasattr(newer, "bot") and newer.bot:
         is_bot = True
 
-    newer_tg = newer
-
     newer = handle_sender(newer)
+
+    if is_bot is False:
+        result = await bot(GetFullUserRequest(
+            id=newer.id,
+        ))
+        newer['intro'] = result.full_user.about
+
+    print(newer)
     
     await check_user(bot, event, group, newer)
     
@@ -162,7 +171,20 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
                         await tg.restrict(bot, group_tg_id, user_tg_id, 1, reason_log)
                     await tg.kick(bot, group_tg_id, user_tg_id, reason_log)
                     await db.cheat_save(user_tg_id, sender, reason_log)
-    
+
+                    return
+
+            intro_restrict_word = await has_intro_restrict_word(sender["intro"])
+            if intro_restrict_word is not None:
+                is_white = await db.white_one(user_tg_id)
+                if is_white is None:
+                    reason_log = "迎宾机器人用户进群，用户简介中包含违禁词：%s" % intro_restrict_word["name"]
+
+                    if intro_restrict_word["level"] == 1:
+                        await tg.restrict(bot, group_tg_id, user_tg_id, 1, reason_log)
+                    await tg.kick(bot, group_tg_id, user_tg_id, reason_log)
+                    await db.cheat_save(user_tg_id, sender, reason_log)
+
                     return
 
             group_admin_like = await like_admin(group_tg_id, sender)
@@ -175,7 +197,7 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
 
                 return
 
-    await create_and_update_user(bot, group_tg_id, newer_tg)
+    await create_and_update_user(bot, group_tg_id, newer)
 
     # people_limit = 1 进群自动禁言入协议号库
     # people_limit = 3 开启入群验证

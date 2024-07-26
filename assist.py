@@ -1,10 +1,8 @@
-import time
 import html
+import random
 import re
 import string
-from zhon.hanzi import punctuation
-import telethon.tl.types
-import random
+import time
 
 
 # ======================================================================================================================
@@ -277,6 +275,7 @@ def handle_sender(sender):
         "first_name": "",
         "last_name": "",
         "full_name": "",
+        "intro": "",
     }
 
     if hasattr(sender, "username") and sender.username is not None:

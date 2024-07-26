@@ -1,4 +1,4 @@
-bot_token = "5759299188:AAHSTq6xbLEb9oWFBkLonFtn3nDLzLkR_EE"
+bot_token = "7471615768:AAFdqpQPmSRNB2WGV6fEPz5lKk7PrjeDVfs"
 bot_url = "https://api.telegram.org/bot%s/" % bot_token
 
 ybjqr_bot_id = 2094467068

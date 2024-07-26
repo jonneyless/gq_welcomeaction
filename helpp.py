@@ -1,12 +1,14 @@
+import asyncio
 import re
 
-import asyncio
 import config
-from config import ybjqr_bot_id
 # import tg
 import db
 import db_redis
-from assist import get_current_timestamp, handle_chat, handle_sender, get_current_time, replace_string_en
+from assist import get_current_timestamp, handle_chat, get_current_time
+from config import ybjqr_bot_id
+
+
 # from tg import remove_admin_tel as tg_remove_admin_tel
 
 
@@ -81,7 +83,6 @@ async def create_and_update_group(chat_id, chat):
 
 
 async def create_and_update_user(bot, group_tg_id, sender):
-    sender = handle_sender(sender)
     sender["group_tg_id"] = group_tg_id
     
     # userr = await db.user_one(sender["tg_id"])
@@ -399,6 +400,11 @@ async def has_fullname_restrict_word(fullname):
 async def has_username_restrict_word(username):
     type_str = "9"
     return await has_restrict_word(username, type_str)
+
+
+async def has_intro_restrict_word(intro):
+    type_str = "9"
+    return await has_restrict_word(intro, type_str)
 
 
 async def has_msg_restrict_word(text):

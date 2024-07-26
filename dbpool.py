@@ -2,10 +2,10 @@ import pymysql
 from dbutils.pooled_db import PooledDB
 
 mysqlInfo = {
-    "host": '127.0.0.1',
+    "host": 'db.huione.test',
     "db": 'welcome',
-    "user": 'root',
-    "passwd": '7a89afd87c0cd015',
+    "user": 'jony',
+    "passwd": 'kzv@unf9mux.VFK_avj',
     "port": 3306
 }
 
