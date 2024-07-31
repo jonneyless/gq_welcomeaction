@@ -1010,7 +1010,7 @@ async def group_word_get():
 
 
 async def search_sensitive_words():
-    data = await db_redis.group_word_get()
+    data = await db_redis.search_sensitive_words()
     if data is None:
         opm = OPMysql()
 

@@ -51,6 +51,8 @@ async def index(bot, event, chat_id, sender_id, msg_id, info, args):
             type = args["t"]
             sort = args["s"]
 
+            ads = await template.ads_top_position(text)
+
             page = int(page)
             type = int(type)
             
@@ -71,6 +73,8 @@ async def index(bot, event, chat_id, sender_id, msg_id, info, args):
                 await bot.edit_message(entity=chat_id, message=msg_id, text="该内容无搜索结果，请重新输入")
             else:
                 try:
-                    await bot.edit_message(entity=chat_id, message=msg_id, text=template.msg_search_get(groups, page, groups_count), buttons=template.button_search_get(text, page, groups_count, type, sort), parse_mode="html", link_preview=False)
+                    buttons = template.button_search_get(text, page, groups_count, type, sort)
+                    buttons = await template.ads_bottom_position(buttons, text)
+                    await bot.edit_message(entity=chat_id, message=msg_id, text=ads + template.msg_search_get(groups, page, groups_count), buttons=buttons, parse_mode="html", link_preview=False)
                 except:
                     print("reply error")
