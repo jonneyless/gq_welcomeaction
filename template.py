@@ -1,4 +1,8 @@
+import time
+
 from telethon import Button
+
+import db_redis
 from assist import has_prev, has_next, get_max_page
 
 
@@ -124,6 +128,22 @@ def msg_boss_pwd():
     msg += "注：密码仅对本账号有效，一经设置无法修改，请牢记您的密码，任何担保工作人员不会主动向您索要密码，此密码仅作为找回身份使用，谨防泄漏"
     
     return msg
+
+
+def msg_ss():
+    return "请通过输入群编号或关键词搜索对应公群"
+
+
+def msg_cx():
+    return "请输入您要查询人员的tgid，或转发此人的发言记录给我"
+
+
+def msg_ad():
+    return "请联系客服 @hwdb 点击【买广告】按钮办理相关业务"
+
+
+def msg_mb():
+    return "已切换至密码功能模式"
     
     
 def button_sure_boss_pwd(pwd):
@@ -135,8 +155,8 @@ def button_sure_boss_pwd(pwd):
             Button.inline(text="取消", data="cancel_boss_pwd"),
         ],
     ]
-    
-    
+
+
 def button_cancel_boss_pwd():
     return [
         [
@@ -144,6 +164,100 @@ def button_cancel_boss_pwd():
         ],
     ]
 
+
+def button_ss_hot_words():
+    buttons = []
+    rows = []
+
+    words = db_redis.getHotWords()
+    for index in words:
+        word = words[index]
+        buttons.append(Button.inline(text=word, data="search?text=" + word + "&page=1&typee=1"))
+        if index % 5 == 4:
+            rows.append(buttons)
+            buttons = []
+
+    if len(buttons) > 0:
+        rows.append(buttons)
+
+    return rows
+
+
+def button_service():
+    return [
+        [
+            Button.url(text="联系客服 @hwdb", url="https://t.me/hwdb"),
+        ],
+    ]
+
+
+async def ads_top_position(keyword):
+    data = await db_redis.getTodayAdsData(1)
+
+    msg = ""
+    for index in data:
+        datum = data[index]
+        if keyword in datum['keywords']:
+            msg += "<a href=\"%s\">%s</a>\n" % (datum['url'], datum['name'])
+
+    if msg != "":
+        msg += "\n"
+
+    return msg
+
+
+async def ads_bottom_position(buttons: list, keyword):
+    data = await db_redis.getTodayAdsData(2)
+
+    for index in data:
+        datum = data[index]
+        if keyword in datum['keywords']:
+            buttons.append([Button.url(text=datum['name'], url=datum['url'])])
+
+    return buttons
+
+
+async def get_group_info(group, link):
+    msg = ""
+
+    if "flag" in group and group["flag"] == 4:
+        if "title" in group:
+            msg += group['title'] + "\n\n"
+    else:
+        if "opening_at" in group and group['opening_at'] is not None:
+            msg += "开群日期：" + time.strftime("%Y.%m.%d", time.strptime(str(group['opening_at']), "%Y-%m-%d %H:%M:%S")) + "\n"
+
+        business = await db_redis.getGroupBusiness(group['business_type'])
+        if business is not None:
+            msg += "业务类型：" + business + "\n"
+
+        manages = await db_redis.getGroupMangers(group['chat_id'])
+        if manages['boss'] is not None:
+            msg += "当前群老板： @" + manages['boss']['username'] + "\n"
+
+        if manages['trader'] is not None:
+            msg += "群内交易员： @" + manages['trader']['username'] + "\n"
+
+        recent_dispute = 0
+        if "recent_dispute" in group and group["recent_dispute"] is not None:
+            recent_dispute = group["recent_dispute"]
+
+        msg += "近期群内纠纷数：" + str(recent_dispute) + "\n"
+
+    msg += link
+
+    return msg
+
+
+async def get_vip_group_info(group, notice):
+    msg = ""
+
+    if "title" in group:
+        msg += group['title'] + "\n\n"
+
+    msg += await get_group_info(group, notice)
+
+    return msg
 
 def msg_search_get(groups, page, count, page_len=20, is_province_or_ka=False):
     max_page = get_max_page(count, page_len)
@@ -217,18 +331,46 @@ def msg_search_get(groups, page, count, page_len=20, is_province_or_ka=False):
     msg += "第 %s 页，共 %s 页" % (page, max_page)
     
     return msg
-    
-    
-def button_search_get(text, page, count, typee, page_len=20):
+
+
+def button_search_get(text, page, count, type, sort=None, page_len=20):
     max_page = get_max_page(count, page_len)
+
+    sortfield = sort
+    sortMode = ""
+    sortReversal = '-'
+
+    if sort is not None:
+        sortMode = "⬆️"
+        if sort[0:1] == '-':
+            sortfield = sort[1:len(sort)]
+            sortMode = "⬇️"
+            sortReversal = ''
+    else:
+        sort = ""
+
+    sortFieldMaps = {
+        'yajin': '押金金额',
+        'opening_at': '开群日期',
+        'trade_volume': '交易量',
+        'recent_dispute': '近期纠纷'
+    }
     
     buttons = []
-    
+
+    buttons_row = []
+    for field in sortFieldMaps:
+        buttonText = sortFieldMaps[field]
+        if sortfield == field:
+            buttonText += sortMode
+        buttons_row.append(Button.inline(text=buttonText, data="search?k=%s&p=%s&t=%s&s=%s" % (text, 1, type, sortReversal + field)))
+    buttons.append(buttons_row)
+
     buttons_row_page_one = []
     buttons_row_page_two = []
     
     if page != 1:
-        buttons_row_page_one.append(Button.inline(text="首页", data="search?text=%s&page=%s&typee=%s" % (text, 1, typee)))
+        buttons_row_page_one.append(Button.inline(text="首页", data="search?k=%s&p=%s&t=%s&s=%s" % (text, 1, type, sort)))
     
     if page - 2 > 0:
         # 3 4 5...
@@ -245,22 +387,23 @@ def button_search_get(text, page, count, typee, page_len=20):
         if page == 3:
             page1 = str(page - 2)
             page2 = str(page - 1)
-            buttons_row_page_one.append(Button.inline(text=page1, data="search?text=%s&page=%s&typee=%s" % (text, (page - 2), typee)))
-            buttons_row_page_one.append(Button.inline(text=page2, data="search?text=%s&page=%s&typee=%s" % (text, (page - 1), typee)))
+            buttons_row_page_one.append(Button.inline(text=page1, data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page - 2), type, sort)))
+            buttons_row_page_one.append(Button.inline(text=page2, data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page - 1), type, sort)))
         else:
             page1 = "..."
             page2 = str(page - 2)
             page3 = str(page - 1)
-            buttons_row_page_one.append(Button.inline(text=page1, data="search?text=%s&page=%s&typee=%s" % (text, (page - 3), typee)))
-            buttons_row_page_one.append(Button.inline(text=page2, data="search?text=%s&page=%s&typee=%s" % (text, (page - 2), typee)))
-            buttons_row_page_one.append(Button.inline(text=page3, data="search?text=%s&page=%s&typee=%s" % (text, (page - 1), typee)))
+            buttons_row_page_one.append(Button.inline(text=page1, data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page - 3), type, sort)))
+            buttons_row_page_one.append(Button.inline(text=page2, data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page - 2), type, sort)))
+            buttons_row_page_one.append(Button.inline(text=page3, data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page - 1), type, sort)))
     else:
         # 1 2
         if page == 2:
-            buttons_row_page_one.append(Button.inline(text="1", data="search?text=%s&page=%s&typee=%s" % (text, 1, typee)))
-    
-    page_current = "(%s)" % page
-    buttons_row_page_one.append(Button.inline(text=page_current, data="search?text=%s&page=%s&typee=%s" % (text, page, typee)))
+            buttons_row_page_one.append(Button.inline(text="1", data="search?k=%s&p=%s&t=%s&s=%s" % (text, 1, type, sort)))
+
+    if max_page > 1:
+        page_current = "(%s)" % page
+        buttons_row_page_one.append(Button.inline(text=page_current, data="search?k=%s&p=%s&t=%s&s=%s" % (text, page, type, sort)))
 
     show_last_page = page
     for i in range(7):
@@ -271,23 +414,23 @@ def button_search_get(text, page, count, typee, page_len=20):
             show_last_page = int(pagei)
             
             if len(buttons_row_page_one) < 8:
-                buttons_row_page_one.append(Button.inline(text=pagei, data="search?text=%s&page=%s&typee=%s" % (text, pagei, typee)))
+                buttons_row_page_one.append(Button.inline(text=pagei, data="search?k=%s&p=%s&t=%s&s=%s" % (text, pagei, type, sort)))
             else:
-                buttons_row_page_two.append(Button.inline(text=pagei, data="search?text=%s&page=%s&typee=%s" % (text, pagei, typee)))
+                buttons_row_page_two.append(Button.inline(text=pagei, data="search?k=%s&p=%s&t=%s&s=%s" % (text, pagei, type, sort)))
     
     if show_last_page < max_page:
         # 最大页 10
         # 8, ..., 尾页
         if len(buttons_row_page_one) < 8:
-            buttons_row_page_one.append(Button.inline(text="...", data="search?text=%s&page=%s&typee=%s" % (text, (show_last_page + 1), typee)))
+            buttons_row_page_one.append(Button.inline(text="...", data="search?k=%s&p=%s&t=%s&s=%s" % (text, (show_last_page + 1), type, sort)))
         else:
-            buttons_row_page_two.append(Button.inline(text="...", data="search?text=%s&page=%s&typee=%s" % (text, (show_last_page + 1), typee)))
+            buttons_row_page_two.append(Button.inline(text="...", data="search?k=%s&p=%s&t=%s&s=%s" % (text, (show_last_page + 1), type, sort)))
 
     if page != max_page:
         if len(buttons_row_page_one) < 8:
-            buttons_row_page_one.append(Button.inline(text="尾页", data="search?text=%s&page=%s&typee=%s" % (text, max_page, typee)))
+            buttons_row_page_one.append(Button.inline(text="尾页", data="search?k=%s&p=%s&t=%s&s=%s" % (text, max_page, type, sort)))
         else:
-            buttons_row_page_two.append(Button.inline(text="尾页", data="search?text=%s&page=%s&typee=%s" % (text, max_page, typee)))
+            buttons_row_page_two.append(Button.inline(text="尾页", data="search?k=%s&p=%s&t=%s&s=%s" % (text, max_page, type, sort)))
 
     if len(buttons_row_page_one) > 0:
         buttons.append(buttons_row_page_one)
@@ -297,9 +440,9 @@ def button_search_get(text, page, count, typee, page_len=20):
 
     buttons_row = []
     if has_prev(page):
-        buttons_row.append(Button.inline(text="上一页⬅️", data="search?text=%s&page=%s&typee=%s" % (text, (page - 1), typee)))
+        buttons_row.append(Button.inline(text="上一页⬅️", data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page - 1), type, sort)))
     if has_next(page, count, page_len):
-        buttons_row.append(Button.inline(text="下一页➡️️", data="search?text=%s&page=%s&typee=%s" % (text, (page + 1), typee)))
+        buttons_row.append(Button.inline(text="下一页➡️️", data="search?k=%s&p=%s&t=%s&s=%s" % (text, (page + 1), type, sort)))
         
     if len(buttons_row) > 0:
         buttons.append(buttons_row)

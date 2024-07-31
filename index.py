@@ -1,21 +1,10 @@
 from telethon import TelegramClient, events
 
-from telethon.tl.functions.users import GetFullUserRequest
-import handle_danbao_message
 import handle_action_message
-import handle_group_message
+import handle_callback
 import handle_private_message
 from config import *
-from helpp import create_and_update_group, create_and_update_user, check_user, handle_chat
-from assist import handle_sender
-import db
-import tg
-import handle_callback
-import db_redis
-from template import *
-from img import download_image
-
-
+from helpp import create_and_update_group
 
 bot = TelegramClient('welcomeAction', 27127438, 'a103aa33a68882267db12de32a2d9f86').start(
     bot_token=bot_token)
@@ -217,8 +206,7 @@ async def new_message(event):
     text = message.message
 
     if is_private(chat_id, sender_id):
-        pass
-        # await handle_private_message.index(bot, event, chat_id, sender_id, text, message)
+        await handle_private_message.index(bot, event, chat_id, sender_id, text, message)
     else:
         await init(event, message, chat_id, sender_id, text)
 
@@ -285,6 +273,8 @@ async def callback(event):
                 item = item.split("=")
                 if len(item) == 2:
                     args[item[0]] = item[1]
+                else:
+                    args[item[0]] = ""
 
     if info == "cancelRestrict":
         group_tg_id = int(args["group_tg_id"])

@@ -1,4 +1,22 @@
-bot_token = "7471615768:AAFdqpQPmSRNB2WGV6fEPz5lKk7PrjeDVfs"
+from environs import Env
+
+env = Env()
+env.read_env()
+
+mysqlInfo = {
+    "host": env.str("DB_HOST", "127.0.0.1"),
+    "db": env.str("DB_DATABASE", "welcome"),
+    "user": env.str("DB_USER", "root"),
+    "passwd": env.str("DB_PASS", "7a89afd87c0cd015"),
+    "port": env.int("DB_PORT", 3306),
+}
+
+redisInfo = {
+    "host": env.str("REDIS_HOST", "127.0.0.1"),
+    "port": env.int("REDIS_PORT", 6379),
+}
+
+bot_token = env.str('BOT_TOKEN', "5759299188:AAHSTq6xbLEb9oWFBkLonFtn3nDLzLkR_EE")
 bot_url = "https://api.telegram.org/bot%s/" % bot_token
 
 ybjqr_bot_id = 2094467068

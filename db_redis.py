@@ -1,10 +1,16 @@
-from redis import Redis
 import json
+
+from redis import Redis
+
+import db
 from assist import get_current_timestamp, get_tomorrow_timestamp
+from config import redisInfo
 
+redis_host = redisInfo['host']
+redis_port = redisInfo['port']
 
-conn = Redis(host='127.0.0.1', port=6379, db=0)
-conn11 = Redis(host='127.0.0.1', port=6379, db=11)
+conn = Redis(host=redis_host, port=redis_port, db=0)
+conn11 = Redis(host=redis_host, port=redis_port, db=11)
 
 prefix = "welcome_"
 
@@ -535,8 +541,23 @@ async def group_word_get():
         return json.loads(val)
 
 
+async def search_sensitive_words():
+    key = prefix + ":search:sensitive_words"
+    val = conn.get(key)
+    if val is None:
+        return None
+    else:
+        return json.loads(val)
+
+
 async def group_word_set(val):
     key = prefix + "group_word"
+
+    conn.set(key, json.dumps(val), 300)  # 5分钟
+
+
+async def search_sensitive_words_set(val):
+    key = prefix + ":search:sensitive_words"
 
     conn.set(key, json.dumps(val), 300)  # 5分钟
     
@@ -704,4 +725,109 @@ def msg_path10_status_set(group_tg_id, user_tg_id):
     # conn = get_conn()
 
     conn.set(key, 1, 60 * 5)  # 5分钟
-    
+
+
+def setPrivateMode(userTgId, mode):
+    key = prefix + ":private:mode:" + str(userTgId)
+
+    conn.set(key, mode, ex=600)
+
+
+def getPrivateMode(userTgId):
+    key = prefix + ":private:mode:" + str(userTgId)
+
+    val = conn.get(key)
+    if val is None:
+        return 'ss'
+    else:
+        return val.decode('utf-8')
+
+
+def getHotWords():
+    key = prefix + ":search:hotwords"
+
+    data = conn.get(key)
+    if data is None:
+        data = db.getHotWords()
+        conn.set(key, json.dumps(data), ex=3600)
+    else:
+        data = json.loads(data)
+
+    return data
+
+
+async def getTodayAdsData(position=1):
+    key = prefix + ":today:ads:" + str(position)
+
+    data = conn.get(key)
+    if data is None:
+        entries = await db.getTodayAdsData()
+        if entries is None or len(entries) == 0:
+            return []
+
+        adsIds = []
+        keywordIds = []
+        for entry in entries:
+            adsIds.append(entry['ads_id'])
+            keywordIds.append(entry['keyword_id'])
+
+        ads = await db.getAdsByIds(adsIds, position)
+        keywords = await db.getKeywordByIds(keywordIds)
+
+        data = {}
+        for entry in entries:
+            adsId = str(entry['ads_id'])
+            keywordId = str(entry['keyword_id'])
+
+            if adsId not in ads:
+                continue
+
+            if adsId not in data:
+                data[adsId] = ads[adsId]
+                data[adsId]['keywords'] = []
+
+            data[adsId]['keywords'].append(keywords[keywordId]['name'])
+
+        res = conn.set(key, json.dumps(data), ex=3600)
+    else:
+        data = json.loads(data)
+
+    return data
+
+
+async def getGroupBusiness(businessId):
+    key = prefix + ":business:all"
+
+    business = conn.get(key)
+    if business is None:
+        business = await db.getBusiness()
+
+        res = conn.set(key, json.dumps(business), ex=3600)
+    else:
+        business = json.loads(business)
+
+    if str(businessId) in business:
+        return business[str(businessId)]
+
+    return None
+
+
+async def getGroupMangers(chatId):
+    key = prefix + ":group:manage:" + str(chatId)
+
+    manages = conn.get(key)
+    if manages is None:
+        manages = await db.getManages(chatId)
+
+        res = conn.set(key, json.dumps(manages), ex=3600)
+    else:
+        manages = json.loads(manages)
+
+    data = {'boss': None, 'trader': None}
+    for manage in manages:
+        if manage['custom_title'] == "本公群老板，小心骗子假冒":
+            data['boss'] = manage
+        elif manage['custom_title'] == "本公群业务员，小心骗子假冒":
+            data['trader'] = manage
+
+    return data

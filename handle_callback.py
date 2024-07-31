@@ -1,7 +1,7 @@
 import db
 import db_redis
-from assist import handle_sender
 import template
+from assist import handle_sender
 
 
 async def index(bot, event, chat_id, sender_id, msg_id, info, args):
@@ -46,22 +46,23 @@ async def index(bot, event, chat_id, sender_id, msg_id, info, args):
             except:
                 print("delete error")
         elif info == "search":
-            text = args["text"]
-            page = args["page"]
-            typee = args["typee"]
-            
+            text = args["k"]
+            page = args["p"]
+            type = args["t"]
+            sort = args["s"]
+
             page = int(page)
-            typee = int(typee)
+            type = int(type)
             
             groups = None
             groups_count = 0
-            if typee == 2:
-                groups = await db.groups_search_by_rules(text, page)
+            if type == 2:
+                groups = await db.groups_search_by_rules(text, page, sort)
                 groups_count = await db.groups_search_count_by_rules(text)
                 if groups_count is not None:
                     groups_count = groups_count["count_num"]
             else:
-                groups = await db.groups_search_by_title(text, page)
+                groups = await db.groups_search_by_title(text, page, sort)
                 groups_count = await db.groups_search_count_by_title(text)
                 if groups_count is not None:
                     groups_count = groups_count["count_num"]
@@ -70,7 +71,6 @@ async def index(bot, event, chat_id, sender_id, msg_id, info, args):
                 await bot.edit_message(entity=chat_id, message=msg_id, text="该内容无搜索结果，请重新输入")
             else:
                 try:
-                    await bot.edit_message(entity=chat_id, message=msg_id, text=template.msg_search_get(groups, page, groups_count), buttons=template.button_search_get(text, page, groups_count, typee), parse_mode="html", link_preview=False)
+                    await bot.edit_message(entity=chat_id, message=msg_id, text=template.msg_search_get(groups, page, groups_count), buttons=template.button_search_get(text, page, groups_count, type, sort), parse_mode="html", link_preview=False)
                 except:
                     print("reply error")
-            

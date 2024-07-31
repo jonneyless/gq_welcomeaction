@@ -1,3 +1,6 @@
+import datetime
+import time
+
 import assist
 import db_redis
 from assist import get_current_time, htmlspecialchars_php, is_number, get_today_time, get_day_int
@@ -9,7 +12,7 @@ from dbpool import OPMysql
 async def group_one_by_num(num):
     opm = OPMysql()
 
-    sql = "select id, chat_id, bot_approve_link from `groups` where group_num = %s and (flag = 2 or flag = 4) and status_in = 1 limit 1" % num
+    sql = "select id, flag, title, chat_id, bot_approve_link, opening_at, business_type, recent_dispute from `groups` where group_num = %s and (flag = 2 or flag = 4) and status_in = 1 limit 1" % num
 
     result = opm.op_select_one(sql)
 
@@ -636,6 +639,46 @@ async def group_admin_get(group_tg_id):
     return admins
 
 
+async def get_group_info(group_id):
+    opm = OPMysql()
+
+    sql = "select * from groups where id = '%s'" % group_id
+
+    result = opm.op_select_one(sql)
+
+    opm.dispose()
+
+    return result
+
+
+async def getBusiness():
+    opm = OPMysql()
+
+    sql = "select id, name from group_business"
+
+    result = opm.op_select_all(sql)
+
+    opm.dispose()
+
+    data = {}
+    for business in result:
+        data[business['id']] = business['name']
+
+    return data
+
+
+async def getManages(chatId):
+    opm = OPMysql()
+
+    sql = "select user_id, username, status, custom_title from group_admin where chat_id = '%s'" % chatId
+
+    result = opm.op_select_all(sql)
+
+    opm.dispose()
+
+    return result
+
+
 async def get_group_official_admin(group_tg_id):
     officials = []
     group_admins = await group_admin_get(group_tg_id)
@@ -966,6 +1009,27 @@ async def group_word_get():
         return result
 
 
+async def search_sensitive_words():
+    data = await db_redis.group_word_get()
+    if data is None:
+        opm = OPMysql()
+
+        sql = "select name from words where type = 11"
+
+        result = opm.op_select_all(sql)
+
+        opm.dispose()
+
+        data = []
+        if result is not None:
+            for item in result:
+                data.append(item['name'])
+
+            await db_redis.search_sensitive_words_set(data)
+
+    return data
+
+
 async def search_reply_word_get():
     data = await db_redis.search_reply_word_get()
     if data is not None:
@@ -1095,21 +1159,30 @@ async def get_search_words_sql(text, is_title=1):
         search_words_sql += ")"
         
     return search_words_sql
-    
 
-async def groups_search_by_title(text, page, page_len = 20):
+
+async def groups_search_by_title(text, page, sort="", page_len=20):
     search_words_sql = await get_search_words_sql(text)
-    
-    name_sort_sql = "if(POSITION('%s' in title) > 0, 1, 0) as name_sort" % text
-    
-    offeset = (page - 1) * page_len
+
+    if sort != "":
+        name_sort_sql = ""
+        field = sort
+        sortMode = 'asc'
+        if sort[0:1] == '-':
+            field = sort[1:len(sort)]
+            sortMode = 'desc'
+
+        sort_sql = "search_sort asc, " + field + " " + sortMode
+    else:
+        name_sort_sql = ", if(POSITION('%s' in title) > 0, 1, 0) as name_sort" % text
+        sort_sql = "name_sort desc, search_sort asc, yajin desc"
+
+    offset = (page - 1) * page_len
     
     opm = OPMysql()
 
-    sql = "select open_status, chat_id as tg_id, title, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s,%s" % (name_sort_sql, search_words_sql, offeset, page_len)
-    
-    print(sql)
-    
+    sql = "select open_status, chat_id as tg_id, title, flag, val as link %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by %s limit %s,%s" % (name_sort_sql, search_words_sql, sort_sql, offset, page_len)
+
     result = opm.op_select_all(sql)
     
     opm.dispose()
@@ -1129,18 +1202,31 @@ async def groups_search_count_by_title(text):
     opm.dispose()
 
     return result
-    
-    
-async def groups_search_by_rules(text, page, page_len = 20):
+
+
+async def groups_search_by_rules(text, page, sort, page_len=20):
     search_words_sql = await get_search_words_sql(text, 2)
-    
-    name_sort_sql = "if(POSITION('%s' in rules) > 0, 1, 0) as name_sort" % text
+
+    if sort != "":
+        name_sort_sql = ""
+        field = sort
+        sortMode = 'asc'
+        if sort[0:1] == '-':
+            field = sort[1:len(sort)]
+            sortMode = 'desc'
+
+        sort_sql = "search_sort asc, " + field + " " + sortMode
+    else:
+        name_sort_sql = ", if(POSITION('%s' in rules) > 0, 1, 0) as name_sort" % text
+        sort_sql = "name_sort desc, search_sort asc, yajin desc"
     
     offeset = (page - 1) * page_len
     
     opm = OPMysql()
 
-    sql = "select open_status, chat_id as tg_id, title, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s,%s" % (name_sort_sql, search_words_sql, offeset, page_len)
+    sql = "select open_status, chat_id as tg_id, title, flag, val as link %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by %s limit %s,%s" % (name_sort_sql, search_words_sql, sort_sql, offeset, page_len)
+
+    print(sql)
 
     result = opm.op_select_all(sql)
 
@@ -1170,7 +1256,7 @@ async def groups_search_by_rules_limit(text, page_len):
     
     opm = OPMysql()
 
-    sql = "select open_status, chat_id as tg_id, title, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s" % (name_sort_sql, search_words_sql, page_len)
+    sql = "select open_status, chat_id as tg_id, title, flag, val as link, %s from `groups` join group_reply on groups.group_num = group_reply.`key` where status_in = 1 and (flag = 2 or flag = 4) and %s order by name_sort desc, search_sort asc, yajin desc limit %s" % (name_sort_sql, search_words_sql, page_len)
     
     result = opm.op_select_all(sql)
 
@@ -1434,4 +1520,65 @@ async def log_msg_path10_save(group_tg_id, user_tg_id, msg_tg_id, info, created_
     opm.dispose()
 
     return result
-    
+
+
+async def getTodayAdsData():
+    opm = OPMysql()
+
+    today = int(time.mktime(time.strptime(str(datetime.date.today()), '%Y-%m-%d')))
+
+    sql = "select ads_id, keyword_id from ads_bidding where begin_at <= %s and end_at >= %s" % (today, today)
+
+    result = opm.op_select_all(sql)
+
+    opm.dispose()
+
+    return result
+
+
+async def getAdsByIds(adsIds, position=1):
+    opm = OPMysql()
+
+    sql = opm.cur.mogrify("select id, name, url from ads where position = %s and id in %s", (position, adsIds))
+
+    result = opm.op_select_all(sql)
+
+    opm.dispose()
+
+    data = {}
+    for ads in result:
+        data[str(ads["id"])] = ads
+
+    return data
+
+
+async def getKeywordByIds(keywordIds):
+    opm = OPMysql()
+
+    sql = opm.cur.mogrify("select id, name from ads_keywords where 1 = %s and id in %s", (1, keywordIds))
+
+    result = opm.op_select_all(sql)
+
+    opm.dispose()
+
+    data = {}
+    for keyword in result:
+        data[str(keyword["id"])] = keyword
+
+    return data
+
+
+async def getHotWords():
+    opm = OPMysql()
+
+    sql = "select text, count(id) as count from log_search group by text order by count desc limit 10"
+
+    result = opm.op_select_all(sql)
+
+    opm.dispose()
+
+    data = []
+    for keyword in result:
+        data.append(keyword['text'])
+
+    return data

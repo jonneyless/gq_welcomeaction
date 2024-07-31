@@ -1,15 +1,8 @@
 import pymysql
 from dbutils.pooled_db import PooledDB
 
-mysqlInfo = {
-    "host": 'db.huione.test',
-    "db": 'welcome',
-    "user": 'jony',
-    "passwd": 'kzv@unf9mux.VFK_avj',
-    "port": 3306
-}
+from config import mysqlInfo
 
-print(mysqlInfo)
 
 class OPMysql(object):
     __pool = None
