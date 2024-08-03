@@ -1,13 +1,14 @@
 import asyncio
-from telethon import Button
-import requests
 import json
+
+import requests
+from telethon import Button
 
 import db
 import db_redis
+from assist import handle_user_arr
 from config import bot_url
 from helpp import get_config_welcome_true_status, get_config_welcome_false_status, get_config_welcome_true_info, get_config_welcome_false_info
-from assist import handle_user_arr
 
 
 async def setChatPermissions(group_tg_id, send=True):
@@ -81,9 +82,37 @@ async def update_admins(group_tg_id):
             for admins_tgid_old in admins_tgid_old_arr:
                 if admins_tgid_old not in admins_tgid_now_arr:
                     await db.group_admin_delete(group_tg_id, admins_tgid_old)
-                    
-                    
+
+
 async def promote_admin(bot, group_tg_id, user_tg_id):
+    tg_url = bot_url + "promoteChatMember"
+    headers = {
+        "Content-Type": "application/json",
+    }
+    data = {
+        "chat_id": group_tg_id,
+        "user_id": user_tg_id,
+        # "can_manage_chat" => true,
+        # "can_post_messages" => true,
+        # "can_edit_messages" => true,
+        "can_delete_messages": True,
+        # "can_manage_voice_chats": True,
+        "can_restrict_members": True,
+        # "can_promote_members": True,
+        # "can_change_info": True,
+        "can_invite_users": True,
+        "can_pin_messages": True,
+    }
+    response = requests.post(tg_url, json=data, headers=headers, timeout=5)
+
+    if response is not None:
+        response_text = json.loads(response.text)
+        print("%s %s %s" % (group_tg_id, user_tg_id, response_text))
+    else:
+        print("%s %s %s" % (group_tg_id, user_tg_id, response))
+
+
+async def promote_super_admin(bot, group_tg_id, user_tg_id):
     tg_url = bot_url + "promoteChatMember"
     headers = {
         "Content-Type": "application/json",

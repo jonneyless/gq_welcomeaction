@@ -1,12 +1,11 @@
 import telethon.tl.types
-import asyncio
 
-from config import check_words, ybjqr_bot_id
-from helpp import *
-from template import *
+import db_redis
 import tg
 from assist import get_hour_int
-import db_redis
+from config import check_words
+from helpp import *
+from template import *
 
 
 async def index(bot, event, message, group, userr, group_tg_id, user_tg_id, text, reply_tg_id, edit=False):
@@ -234,9 +233,13 @@ async def handle_text(bot, event, message, group, userr, group_tg_id, user_tg_id
         is_official = await db.official_one(user_tg_id)
         if is_official is not None:
             print("%s is official" % user_tg_id)
-            await tg.promote_admin(bot, group_tg_id, user_tg_id)
+            name = await db.official_get_firstname(user_tg_id)
+            if name.startswith('交易员'):
+                await tg.promote_super_admin(bot, group_tg_id, user_tg_id)
+            else:
+                await tg.promote_admin(bot, group_tg_id, user_tg_id)
             m = await event.reply(message="开启成功")
-            
+
             await asyncio.sleep(3)
             await tg.delete_only(bot, group_tg_id, message.id)
             if m is not None and hasattr(m, "id"):

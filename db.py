@@ -313,7 +313,7 @@ async def user_group_kick(group_tg_id, user_tg_id):
     
         return result
     else:
-        await user_group_save(group_tg_id, user_tg_id, 3)
+        await user_group_save(group_tg_id, user_tg_id)
     
     
 async def user_group_restrict(group_tg_id, user_tg_id):
@@ -450,6 +450,21 @@ async def official_one(user_tg_id):
         is_official_flag = True
 
     return is_official_flag
+
+
+async def official_get_firstname(user_tg_id):
+    opm = OPMysql()
+
+    sql = "select firstname from offical_user where tg_id ='%s'" % user_tg_id
+
+    result = opm.op_select_one(sql)
+
+    opm.dispose()
+
+    if result is None:
+        return ""
+
+    return result['firstname']
 
 
 async def official_get_flag():
@@ -1582,3 +1597,18 @@ async def getHotWords():
         data.append(keyword['text'])
 
     return data
+
+
+async def updateFakeGroups(groupId):
+    opm = OPMysql()
+
+    sql = "select * from fake_groups where group_tg_id = %s" % groupId
+
+    result = opm.op_select_one(sql)
+
+    if result is None:
+        sql = "insert into fake_groups(group_tg_id, status) values(%s, 0)" % groupId
+
+        opm.op_update(sql)
+
+    opm.dispose()

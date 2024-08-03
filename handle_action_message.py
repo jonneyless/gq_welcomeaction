@@ -3,6 +3,7 @@ from telethon.tl.functions.users import GetFullUserRequest
 
 import tg
 from assist import *
+from config import *
 from helpp import *
 
 
@@ -43,17 +44,23 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
 
     print('user enter:', user_tg_id)
 
-    if user_tg_id == ybjqr_bot_id:
+    if user_tg_id == ybjqr_bot_id or user_tg_id == bot_id:
         is_official = await db.official_one(from_id)
         if is_official is None:
+            await event.respond('本群是假群，请马上退群，小心上当受骗。')
+            await db.updateFakeGroups(group_tg_id)
+
             kick_result = "true"
             try:
-                temp = await bot.kick_participant(group_tg_id, user_tg_id)
+                kickTarget = user_tg_id
+                if user_tg_id == bot_id:
+                    kickTarget = 'me'
+                temp = await bot.kick_participant(group_tg_id, kickTarget)
                 print(temp)
             except:
                 kick_result = "false"
                 print("tg error...")
-                
+
             print("from_id %s, group_tg_id %s, %s" % (from_id, group_tg_id, kick_result))
 
         return
@@ -81,7 +88,7 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
 
     if is_bot is False:
         result = await bot(GetFullUserRequest(
-            id=newer.id,
+            id=newer['id'],
         ))
         newer['intro'] = result.full_user.about
 
