@@ -45,25 +45,27 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
     print('user enter:', user_tg_id)
 
     if user_tg_id == ybjqr_bot_id or user_tg_id == bot_id:
+        # 非官方人员拉机器人入群
         is_official = await db.official_one(from_id)
         if is_official is None:
-            await event.respond('本群是假群，请马上退群，小心上当受骗。')
-            await db.updateFakeGroups(group_tg_id)
+            await kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id)
+            return
 
-            kick_result = "true"
-            try:
-                kickTarget = user_tg_id
-                if user_tg_id == bot_id:
-                    kickTarget = 'me'
-                temp = await bot.kick_participant(group_tg_id, kickTarget)
-                print(temp)
-            except:
-                kick_result = "false"
-                print("tg error...")
+        # 非真群
+        group = await db.get_group_info(group_tg_id)
+        if group is not None and group['flag'] != 2 and group['flag'] != 4:
+            await kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id)
+            return
 
-            print("from_id %s, group_tg_id %s, %s" % (from_id, group_tg_id, kick_result))
-
-        return
+        # 群管里官方人员不足3个
+        admins = tg.getChatAdmins(group_tg_id)
+        officialCount = 0
+        for userId in admins:
+            if await db.official_one(userId) is not None:
+                officialCount = officialCount + 1
+        if officialCount < 3:
+            await kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id)
+            return
 
     is_official = await db.official_one(user_tg_id)
     if is_official is not None:

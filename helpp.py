@@ -1,11 +1,12 @@
 import asyncio
+import math
 import re
 
 import config
 # import tg
 import db
 import db_redis
-from assist import get_current_timestamp, handle_chat, get_current_time
+from assist import get_current_timestamp, handle_chat, get_current_time, timestamp2time, time2timestamp
 from config import ybjqr_bot_id
 
 
@@ -872,5 +873,22 @@ async def yuefei_sava_all(group, log_danbao, message_tg_id, userr, flag=1):
                 await db.danbao_yuefei_save(group, log_danbao, message_tg_id, userr, timestamp2time(start_timestamp + 1), 2)
             else:
                 await db.danbao_yuefei_save_no(group, log_danbao, message_tg_id, userr, timestamp2time(start_timestamp + 1), 2)
-                
-                
+
+
+async def kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id):
+    await event.respond('本群是假群，请马上退群，小心上当受骗。')
+    await db.updateFakeGroups(group_tg_id)
+    db_redis.updateFakeGroups(group_tg_id, user_tg_id)
+
+    kick_result = "true"
+    try:
+        kickTarget = user_tg_id
+        if user_tg_id == bot_id:
+            kickTarget = 'me'
+        temp = await bot.kick_participant(group_tg_id, kickTarget)
+        print(temp)
+    except:
+        kick_result = "false"
+        print("tg error...")
+
+    print("from_id %s, group_tg_id %s, %s" % (from_id, group_tg_id, kick_result))

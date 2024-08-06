@@ -831,3 +831,9 @@ async def getGroupMangers(chatId):
             data['trader'] = manage
 
     return data
+
+
+def updateFakeGroups(groupId, botId):
+    key = prefix + ":fakeGroupIds"
+
+    conn11.zadd(key, {groupId: botId})

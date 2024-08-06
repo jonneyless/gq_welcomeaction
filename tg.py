@@ -529,5 +529,34 @@ async def createBotApproveLink(group_tg_id):
 #             flag = True
       
 #     return flag
-    
-    
+
+
+def getChatAdmins(chat_id):
+    tg_url = bot_url + "getChatAdministrators"
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    data = {
+        "chat_id": chat_id,
+    }
+
+    response = None
+
+    try:
+        response = requests.post(tg_url, json=data, headers=headers, timeout=10)
+    except:
+        pass
+
+    admins = []
+    if response is not None:
+        response_text = json.loads(response.text)
+
+        if "ok" in response_text:
+            if response_text["ok"]:
+                if "result" in response_text:
+                    for admin in response_text["result"]:
+                        admins.append(admin['user']['id'])
+
+    return admins
