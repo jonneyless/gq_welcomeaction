@@ -4,7 +4,7 @@ from redis import Redis
 
 import db
 from assist import get_current_timestamp, get_tomorrow_timestamp
-from config import redisInfo
+from config import redisInfo, ybjqr_bot_id, ybjqr_bot_token, bot_id, bot_token
 
 redis_host = redisInfo['host']
 redis_port = redisInfo['port']
@@ -836,4 +836,8 @@ async def getGroupMangers(chatId):
 def updateFakeGroups(groupId, botId):
     key = prefix + ":fakeGroupIds"
 
-    conn11.zadd(key, {groupId: botId})
+    if botId == ybjqr_bot_id:
+        conn11.hset(key, groupId, ybjqr_bot_token)
+
+    if botId == bot_id:
+        conn11.hset(key, groupId, bot_token)

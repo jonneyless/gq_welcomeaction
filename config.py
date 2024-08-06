@@ -20,6 +20,7 @@ bot_token = env.str('BOT_TOKEN', "5759299188:AAHSTq6xbLEb9oWFBkLonFtn3nDLzLkR_EE
 bot_id = env.int('BOT_ID', 5759299188)
 bot_url = "https://api.telegram.org/bot%s/" % bot_token
 
+ybjqr_bot_token = env.str('BOT_TOKEN', "5759299188:AAHSTq6xbLEb9oWFBkLonFtn3nDLzLkR_EE")
 ybjqr_bot_id = env.int("WELCOME_BOT_ID", 2094467068)
 hwjzbot_id = 5217006539
 EVE9529_bot_id = 1909582409
