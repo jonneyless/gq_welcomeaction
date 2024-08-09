@@ -657,7 +657,7 @@ async def group_admin_get(group_tg_id):
 async def get_group_info(group_id):
     opm = OPMysql()
 
-    sql = "select * from groups where id = '%s'" % group_id
+    sql = "select * from `groups` where id = '%s'" % group_id
 
     result = opm.op_select_one(sql)
 

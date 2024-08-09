@@ -51,8 +51,6 @@ async def handle_in(bot, event, group, group_tg_id, from_id, user_id):
             await kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id)
             return
 
-        # 非真群
-        group = await db.get_group_info(group_tg_id)
         if group is not None and group['flag'] != 2 and group['flag'] != 4:
             await kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id)
             return

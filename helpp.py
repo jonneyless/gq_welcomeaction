@@ -47,7 +47,7 @@ async def create_and_update_group(chat_id, chat):
     group = await db.group_one(group_tg_id)
     if group is None:
         await db.group_save(group_tg_id, group_title)
-        return
+        group = await db.group_one(group_tg_id)
     
     if group["title"] != group_title:
         await db.group_set_title(group["id"], group_title)
@@ -880,15 +880,15 @@ async def kickSelf(bot, event, from_id, bot_id, group_tg_id, user_tg_id):
     await db.updateFakeGroups(group_tg_id)
     db_redis.updateFakeGroups(group_tg_id, user_tg_id)
 
-    kick_result = "true"
-    try:
-        kickTarget = user_tg_id
-        if user_tg_id == bot_id:
-            kickTarget = 'me'
-        temp = await bot.kick_participant(group_tg_id, kickTarget)
-        print(temp)
-    except:
-        kick_result = "false"
-        print("tg error...")
-
-    print("from_id %s, group_tg_id %s, %s" % (from_id, group_tg_id, kick_result))
+    # kick_result = "true"
+    # try:
+    #     kickTarget = user_tg_id
+    #     if user_tg_id == bot_id:
+    #         kickTarget = 'me'
+    #     temp = await bot.kick_participant(group_tg_id, kickTarget)
+    #     print(temp)
+    # except:
+    #     kick_result = "false"
+    #     print("tg error...")
+    #
+    # print("from_id %s, group_tg_id %s, %s" % (from_id, group_tg_id, kick_result))

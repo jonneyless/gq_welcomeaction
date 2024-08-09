@@ -246,8 +246,6 @@ async def chat_action(event):
         return
 
     group = await create_and_update_group(chat_id, chat)
-    if group is None:
-        return
 
     await handle_action_message.index(bot, event, group, chat_id, action_message)
 
